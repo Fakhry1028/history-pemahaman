@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id" class="dark selection:bg-cyan-200 dark:selection:bg-cyan-700">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Analitik Pemahaman</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { 
+                    fontFamily: { 
+                        sans: ['Poppins', 'sans-serif'],
+                        tech: ['Orbitron', 'sans-serif'],
+                        digital: ['"VT323"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.5); border-radius: 10px; }
+        
+        /* Tema Teknologi (Grid) */
+        .bg-grid-tech {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+        }
+
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        .live-indicator {
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        /* Animasi pop untuk angka yang berubah */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="relative h-[100dvh] text-gray-100 bg-slate-950 transition-colors duration-500 overflow-hidden flex flex-col font-sans select-none bg-grid-tech">
+
+    <!-- Latar Belakang Cahaya (Blobs) -->
+    <div class="fixed top-0 left-10 w-72 h-72 md:w-96 md:h-96 bg-cyan-600/20 rounded-full mix-blend-lighten filter blur-[100px] opacity-60 animate-blob pointer-events-none z-0"></div>
+    <div class="fixed top-0 right-10 w-72 h-72 md:w-96 md:h-96 bg-blue-700/20 rounded-full mix-blend-lighten filter blur-[100px] opacity-60 animate-blob animation-delay-2000 pointer-events-none z-0"></div>
+    <div class="fixed -bottom-8 left-20 w-72 h-72 md:w-96 md:h-96 bg-indigo-900/30 rounded-full mix-blend-lighten filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none z-0"></div>
+
+    <!-- HEADER DINAMIS -->
+    <header class="p-4 md:p-6 flex justify-between items-center bg-slate-900/80 backdrop-blur-md shadow-md z-20 relative border-b border-cyan-900/50 shrink-0">
+        <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] shrink-0">
+                <i class="fas fa-chart-line text-white text-xl md:text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg md:text-2xl font-black tracking-wide text-cyan-400 truncate font-tech">LIVE ANALITICS</h1>
+                <p class="text-[10px] md:text-xs text-blue-400 tracking-[0.2em] font-medium uppercase font-digital">Pemahaman Kuis: Makna Logo NU (8 Soal)</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-full">
+                <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full live-indicator"></div>
+                <span class="text-[10px] md:text-xs font-tech text-emerald-400 tracking-wider" id="sync-status">SYNCING</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- AREA KONTEN -->
+    <main class="flex-grow relative w-full overflow-y-auto custom-scrollbar z-10 p-4 md:p-8">
+        <div class="max-w-6xl mx-auto space-y-6">
+            
+            <!-- Panel Grafik (Chart) -->
+            <div class="bg-slate-900/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-cyan-900/50 p-6 md:p-8 relative overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-white font-tech tracking-wide"><i class="fas fa-signal text-cyan-500 mr-2"></i> LEVEL PEMAHAMAN KELAS</h2>
+                    <span id="total-responden" class="bg-cyan-900/50 text-cyan-400 text-xs md:text-sm px-3 py-1 rounded-full border border-cyan-800 font-digital tracking-widest">Memuat...</span>
+                </div>
+                
+                <!-- Initial Loading State -->
+                <div id="loading-state" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md rounded-[2rem] transition-opacity duration-500">
+                    <div class="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
+                    <p class="text-cyan-400 font-tech tracking-widest animate-pulse">MENYIAPKAN DATABASE REALTIME...</p>
+                </div>
+
+                <!-- Canvas untuk Chart.js -->
+                <div class="relative h-[300px] md:h-[400px] w-full">
+                    <canvas id="pemahamanChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Panel Rincian Angka (Cards) -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="cards-container">
+                <!-- Cards digenerate oleh JS -->
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // GANTI DENGAN URL GOOGLE SCRIPT ANDA
+        // ==========================================
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzvhQDWPEQVBI43PcrvpNYBpoWfD2ubRwNIhPowtbimeonA5cFluL5S1ycKxJt6pGjv/exec"; 
+        
+        let pemahamanChartInstance = null;
+        let lastDataString = ""; 
+        let isFirstLoad = true;
+
+        // Konfigurasi 5 Tingkat Pemahaman sesuai request
+        const kategoriConfig = [
+            { nama: "Tidak Memperhatikan", syarat: "0-1 Benar", min: 0, max: 1, color: "rgba(239, 68, 68, 0.8)", border: "rgba(239, 68, 68, 1)", icon: "fa-battery-empty" },       // Merah
+            { nama: "Kurang Memperhatikan", syarat: "2-3 Benar", min: 2, max: 3, color: "rgba(249, 115, 22, 0.8)", border: "rgba(249, 115, 22, 1)", icon: "fa-battery-quarter" },   // Orange
+            { nama: "Cukup Memperhatikan", syarat: "4-5 Benar", min: 4, max: 5, color: "rgba(234, 179, 8, 0.8)", border: "rgba(234, 179, 8, 1)", icon: "fa-battery-half" },       // Kuning
+            { nama: "Memperhatikan", syarat: "6-7 Benar", min: 6, max: 7, color: "rgba(16, 185, 129, 0.8)", border: "rgba(16, 185, 129, 1)", icon: "fa-battery-three-quarters" }, // Hijau
+            { nama: "Sangat Memperhatikan", syarat: "8 Benar", min: 8, max: 8, color: "rgba(6, 182, 212, 0.8)", border: "rgba(6, 182, 212, 1)", icon: "fa-battery-full" }          // Cyan
+        ];
+
+        async function fetchRealtimeData() {
+            if(GAS_URL === "MASUKKAN_URL_WEB_APP_GOOGLE_SCRIPT_DISINI") {
+                simulasiDataDemo();
+                return;
+            }
+
+            try {
+                // Update text indikator
+                const syncBadge = document.getElementById('sync-status');
+                syncBadge.textContent = "TERKINI";
+                syncBadge.classList.replace('text-slate-500', 'text-emerald-400');
+                syncBadge.classList.replace('text-red-500', 'text-emerald-400');
+
+                // Memanggil parameter ?action=getPersentase dari Google Script
+                const response = await fetch(GAS_URL + "?action=getPersentase");
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    // Hanya perbarui UI jika data ada perubahan (mencegah kedipan / hemat memori)
+                    const currentDataString = JSON.stringify(result.data);
+                    if (currentDataString !== lastDataString) {
+                        lastDataString = currentDataString;
+                        memprosesData(result.data);
+                    }
+                    
+                    setTimeout(() => { syncBadge.textContent = "TERKINI"; }, 500);
+
+                } else {
+                    syncBadge.textContent = "ERROR DB";
+                    syncBadge.classList.replace('text-emerald-400', 'text-red-500');
+                }
+            } catch (e) {
+                console.error("Error Koneksi", e);
+                const syncBadge = document.getElementById('sync-status');
+                syncBadge.textContent = "OFFLINE";
+                syncBadge.classList.replace('text-emerald-400', 'text-slate-500');
+            }
+        }
+
+        function memprosesData(data) {
+            let jumlahPerKategori = [0, 0, 0, 0, 0]; // Index 0 s/d 4 (Sesuai kategori)
+            let totalResponden = 0;
+
+            if (!data) return;
+            const arrayData = Array.isArray(data) ? data : Object.values(data);
+
+            // Perulangan untuk mengkategorikan setiap mahasiswa
+            arrayData.forEach(mhs => {
+                const benar = parseInt(mhs.benar) || 0;
+                const salah = parseInt(mhs.salah) || 0;
+                
+                // Lewati hitungan jika datanya sama-sama 0 (Belum mengerjakan/NIM kosong)
+                if (benar === 0 && salah === 0) return; 
+
+                totalResponden++;
+
+                // Menentukan Kategori
+                if (benar >= 0 && benar <= 1) {
+                    jumlahPerKategori[0]++;
+                } else if (benar >= 2 && benar <= 3) {
+                    jumlahPerKategori[1]++;
+                } else if (benar >= 4 && benar <= 5) {
+                    jumlahPerKategori[2]++;
+                } else if (benar >= 6 && benar <= 7) {
+                    jumlahPerKategori[3]++;
+                } else if (benar === 8) {
+                    jumlahPerKategori[4]++; // Sangat Memperhatikan (Lengkap)
+                }
+            });
+
+            // Update Header Counter
+            document.getElementById('total-responden').innerHTML = `<i class="fas fa-users"></i> ${totalResponden} Mahasiswa`;
+
+            // Eksekusi Render Grafik & Kotak
+            if (isFirstLoad) {
+                initGrafik(jumlahPerKategori);
+                isFirstLoad = false;
+                
+                // Hilangkan Layar Loading dengan animasi fade-out
+                const loadingScreen = document.getElementById('loading-state');
+                loadingScreen.classList.add('opacity-0');
+                setTimeout(() => loadingScreen.classList.add('hidden'), 500);
+            } else {
+                updateGrafik(jumlahPerKategori);
+            }
+
+            renderCards(jumlahPerKategori);
+        }
+
+        function initGrafik(dataJumlah) {
+            const ctx = document.getElementById('pemahamanChart').getContext('2d');
+            
+            Chart.defaults.color = '#9ca3af'; // Text color
+            Chart.defaults.font.family = 'Poppins';
+
+            pemahamanChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: kategoriConfig.map(k => k.nama),
+                    datasets: [{
+                        label: 'Jumlah Mahasiswa',
+                        data: dataJumlah,
+                        backgroundColor: kategoriConfig.map(k => k.color),
+                        borderColor: kategoriConfig.map(k => k.border),
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        hoverBackgroundColor: kategoriConfig.map(k => k.border),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 14, family: 'Orbitron' },
+                            bodyFont: { size: 14, weight: 'bold' },
+                            padding: 12,
+                            borderColor: '#06b6d4',
+                            borderWidth: 1,
+                            callbacks: {
+                                afterTitle: function(context) {
+                                    return '(' + kategoriConfig[context[0].dataIndex].syarat + ')';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, color: '#64748b' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#cbd5e1', font: { size: 11 } },
+                            grid: { display: false }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        function updateGrafik(dataBaru) {
+            if (pemahamanChartInstance) {
+                // Mendorong data baru ke Chart lalu perbarui
+                pemahamanChartInstance.data.datasets[0].data = dataBaru;
+                pemahamanChartInstance.update();
+            }
+        }
+
+        function renderCards(dataJumlah) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = ''; 
+
+            kategoriConfig.forEach((kategori, index) => {
+                const nilai = dataJumlah[index];
+                const card = document.createElement('div');
+                
+                // Beri efek nyala neon jika nilainya > 0
+                const glowClass = nilai > 0 ? `shadow-[0_0_15px_${kategori.color.replace('0.8', '0.4')}]` : 'shadow-none';
+
+                card.className = `bg-slate-900/60 backdrop-blur-md rounded-xl p-4 border flex flex-col items-center justify-center text-center transition-all duration-500 ${glowClass}`;
+                card.style.borderColor = kategori.color;
+
+                // Animasi berdenyut (Pop-in) saat angkanya berubah
+                const prevValue = container.getAttribute(`data-prev-${index}`) || "0";
+                const numAnimation = parseInt(prevValue) !== nilai ? "animate-pop-in" : "";
+                
+                card.innerHTML = `
+                    <i class="fas ${kategori.icon} text-2xl mb-2" style="color: ${kategori.border}"></i>
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-300 leading-tight h-8 mb-1 flex items-center justify-center">${kategori.nama}</h3>
+                    <div class="text-[9px] text-gray-500 font-tech uppercase mb-2 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">${kategori.syarat}</div>
+                    
+                    <div class="text-4xl font-black font-digital tracking-wider ${numAnimation}" style="color: ${kategori.border}">
+                        ${nilai}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+                container.setAttribute(`data-prev-${index}`, nilai);
+            });
+        }
+
+        let iterasiDemo = 0;
+        function simulasiDataDemo() {
+            // Ini hanya simulasi animasi berjalan jika URL GAS belum disetel
+            document.getElementById('sync-status').textContent = "DEMO MODE";
+            const mockDataArray = [
+                [{ benar: 8, salah: 0 }, { benar: 7, salah: 1 }],
+                [{ benar: 8, salah: 0 }, { benar: 7, salah: 1 }, { benar: 2, salah: 6 }, { benar: 4, salah: 4 }],
+                [{ benar: 8, salah: 0 }, { benar: 7, salah: 1 }, { benar: 2, salah: 6 }, { benar: 4, salah: 4 }, { benar: 8, salah: 0 }, { benar: 1, salah: 7 }],
+                [{ benar: 8, salah: 0 }, { benar: 7, salah: 1 }, { benar: 2, salah: 6 }, { benar: 4, salah: 4 }, { benar: 8, salah: 0 }, { benar: 1, salah: 7 }, { benar: 8, salah: 0 }, { benar: 5, salah: 3 }]
+            ];
+            const currentData = mockDataArray[iterasiDemo % mockDataArray.length];
+            memprosesData(currentData);
+            iterasiDemo++;
+        }
+
+        window.onload = () => {
+            fetchRealtimeData(); // Ambil data saat halaman dibuka pertama kali
+            
+            // Jantung Realtime: Tarik data otomatis setiap 3 detik!
+            setInterval(fetchRealtimeData, 3000); 
+        };
+
+    </script>
+</body>
+</html>
