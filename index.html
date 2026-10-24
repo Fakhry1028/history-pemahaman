@@ -360,6 +360,15 @@
             
             // Jantung Realtime: Tarik data otomatis setiap 3 detik!
             setInterval(fetchRealtimeData, 3000); 
+
+            // Fitur Fullscreen otomatis saat layar diklik di mana saja
+            document.body.addEventListener('click', () => {
+                if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log("Browser mencegah fullscreen otomatis: ", err);
+                    });
+                }
+            });
         };
 
     </script>
